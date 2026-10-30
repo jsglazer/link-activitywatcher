@@ -32,9 +32,21 @@ const context = await esbuild.context({
 	outfile: "main.js",
 });
 
+// The ActivityWatch custom visualization: a standalone browser bundle served by aw-server.
+const visContext = await esbuild.context({
+	entryPoints: ["src/vis/main.ts"],
+	bundle: true,
+	format: "iife",
+	target: "es2018",
+	logLevel: "info",
+	sourcemap: prod ? false : "inline",
+	outfile: "aw-visualization/vis.js",
+});
+
 if (prod) {
 	await context.rebuild();
+	await visContext.rebuild();
 	process.exit(0);
 } else {
-	await context.watch();
+	await Promise.all([context.watch(), visContext.watch()]);
 }

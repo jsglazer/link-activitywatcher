@@ -89,6 +89,25 @@ Matched case-insensitively against the vault-relative path:
 | **Reconnect to ActivityWatch** | Retry the connection now. |
 | **Pause / resume tracking** | Same as the status bar toggle. |
 
+## Project dashboard inside ActivityWatch
+
+`aw-visualization/` is an ActivityWatch *custom visualization*: a page aw-server serves and the Activity view embeds. It shows, for whatever period you pick in ActivityWatch:
+
+- total Obsidian time and a stacked bar per day, colored by project (week/month views; hover a bar for the breakdown);
+- an expandable **project → note** tree with time per note, most-worked first. Click a note to open it in Obsidian.
+
+Setup (once):
+
+1. Add to `~/Library/Application Support/activitywatch/aw-server/aw-server.toml` under `[server.custom_static]` (point it at this repo's `aw-visualization` folder, or a copy of it):
+   ```toml
+   [server.custom_static]
+   aw-watcher-obsidian = "/path/to/link-activitywatcher/aw-visualization"
+   ```
+2. Restart ActivityWatch (menu-bar icon → Quit, then reopen it).
+3. In the web UI open **Activity → Edit view → Add visualization**, choose **Custom visualization**, enter watcher name `aw-watcher-obsidian` and any title, then **Save**.
+
+The page sizes its own frame and spans the full row. It follows ActivityWatch's light/dark theme setting. Colors stay with a project across periods (stored per browser). It needs the Python `aw-server` that ships with ActivityWatch; `npm run build` rebuilds `aw-visualization/vis.js` from `src/vis/`.
+
 ## Seeing the data in ActivityWatch
 
 Open the ActivityWatch web UI (http://localhost:5600) → **Activity** → your host. The **Editor** section lists files, projects (vaults), and languages from `app.editor.activity` buckets. Raw events are under **Raw Data** → `aw-watcher-obsidian_<hostname>`.

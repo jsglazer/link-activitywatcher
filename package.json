@@ -1,6 +1,6 @@
 {
 	"name": "link-activitywatcher",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Send Obsidian note activity (vault, file, language) to a local ActivityWatch server as an editor watcher.",
 	"main": "main.js",
 	"scripts": {

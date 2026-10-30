@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obsidian projects</title>
+<style>
+:root {
+	color-scheme: light;
+	--text-primary: #1a202c;
+	--text-secondary: #52514e;
+	--text-muted: #8a8984;
+	--rule: #e3e2dc;
+	--hover: rgba(0, 0, 0, 0.04);
+	--track: #ecebe6;
+	--tip-bg: #ffffff;
+	--link: #1f5fae;
+	--s0: #2a78d6; --s1: #eb6834; --s2: #1baf7a; --s3: #eda100;
+	--s4: #e87ba4; --s5: #008300; --s6: #6250d6; --s7: #e34948; --s8: #a9a8a1;
+}
+@media (prefers-color-scheme: dark) {
+	:root:where(:not([data-theme="light"])) {
+		color-scheme: dark;
+		--text-primary: #f0efec;
+		--text-secondary: #c3c2b7;
+		--text-muted: #8f8e86;
+		--rule: #3a3a37;
+		--hover: rgba(255, 255, 255, 0.05);
+		--track: #2e2e2b;
+		--tip-bg: #262624;
+		--link: #8fb8f0;
+		--s0: #3987e5; --s1: #d95926; --s2: #199e70; --s3: #c98500;
+		--s4: #d55181; --s5: #008300; --s6: #9085e9; --s7: #e66767; --s8: #6e6d67;
+	}
+}
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--text-primary: #f0efec;
+	--text-secondary: #c3c2b7;
+	--text-muted: #8f8e86;
+	--rule: #3a3a37;
+	--hover: rgba(255, 255, 255, 0.05);
+	--track: #2e2e2b;
+	--tip-bg: #262624;
+	--link: #8fb8f0;
+	--s0: #3987e5; --s1: #d95926; --s2: #199e70; --s3: #c98500;
+	--s4: #d55181; --s5: #008300; --s6: #9085e9; --s7: #e66767; --s8: #6e6d67;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; }
+body {
+	font: 14px/1.4 "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
+	color: var(--text-primary);
+	font-variant-numeric: tabular-nums;
+	padding: 2px 2px 8px;
+}
+.s0 { --c: var(--s0); } .s1 { --c: var(--s1); } .s2 { --c: var(--s2); } .s3 { --c: var(--s3); }
+.s4 { --c: var(--s4); } .s5 { --c: var(--s5); } .s6 { --c: var(--s6); } .s7 { --c: var(--s7); } .s8 { --c: var(--s8); }
+
+.head { margin-bottom: 6px; }
+.total { font-size: 20px; font-weight: 600; }
+.sub { color: var(--text-secondary); }
+.empty { color: var(--text-secondary); margin: 8px 0; }
+.error { color: #c0392b; }
+
+.chart { min-height: 96px; }
+.chart svg { display: block; overflow: visible; }
+.chart .fill { fill: var(--c); }
+.chart .axis { stroke: var(--rule); stroke-width: 1; }
+.chart .tick { fill: var(--text-muted); font-size: 10px; text-anchor: middle; }
+.chart .peak { text-anchor: end; }
+.chart .grid { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 3; }
+.chart .hit { fill: transparent; cursor: default; }
+.chart .hit:hover { fill: var(--hover); }
+
+.tree { margin-top: 10px; border-top: 1px solid var(--rule); }
+.project { border-bottom: 1px solid var(--rule); }
+.row {
+	list-style: none;
+	display: grid;
+	grid-template-columns: 14px 10px minmax(0, 1fr) auto minmax(40px, 120px) 64px;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 4px;
+	cursor: pointer;
+	border-radius: 4px;
+}
+.row::-webkit-details-marker { display: none; }
+.row:hover { background: var(--hover); }
+.chev { width: 0; height: 0; border-left: 5px solid var(--text-muted); border-top: 4px solid transparent; border-bottom: 4px solid transparent; transition: transform 0.12s; justify-self: center; }
+.project[open] .chev { transform: rotate(90deg); }
+.swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta { color: var(--text-muted); font-size: 12px; }
+.share { height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
+.share-fill { display: block; height: 100%; background: var(--c); border-radius: 3px; }
+.time { text-align: right; color: var(--text-secondary); }
+
+.files { list-style: none; margin: 0 0 6px; padding: 0 4px 0 36px; }
+.file {
+	display: grid;
+	grid-template-columns: minmax(0, auto) minmax(0, 1fr) 64px;
+	align-items: baseline;
+	gap: 8px;
+	padding: 3px 0;
+	border-top: 1px dashed var(--rule);
+}
+.file:first-child { border-top: 0; }
+.fname { color: var(--link); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fname:hover { text-decoration: underline; }
+.folder { color: var(--text-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tip {
+	position: fixed;
+	display: none;
+	z-index: 10;
+	pointer-events: none;
+	background: var(--tip-bg);
+	color: var(--text-primary);
+	border: 1px solid var(--rule);
+	border-radius: 6px;
+	padding: 6px 8px;
+	font-size: 12px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	max-width: 280px;
+}
+.tip-head { font-weight: 600; margin-bottom: 2px; }
+
+@media (max-width: 420px) {
+	.row { grid-template-columns: 14px 10px minmax(0, 1fr) 56px; }
+	.row .meta, .row .share { display: none; }
+	.files { padding-left: 20px; }
+}
+</style>
+</head>
+<body>
+<div id="app"><p class="empty">Loading…</p></div>
+<script src="vis.js"></script>
+</body>
+</html>
