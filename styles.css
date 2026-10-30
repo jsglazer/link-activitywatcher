@@ -1,0 +1,22 @@
+.link-activitywatcher-status.is-offline {
+	color: var(--text-error);
+}
+
+.link-activitywatcher-test-result {
+	margin-top: var(--size-4-1);
+	user-select: text;
+}
+
+.link-activitywatcher-test-result.mod-success {
+	color: var(--text-success);
+}
+
+.link-activitywatcher-test-result.mod-warning {
+	color: var(--text-error);
+}
+
+.link-activitywatcher-patterns textarea {
+	font-family: var(--font-monospace);
+	width: 100%;
+	min-width: 280px;
+}

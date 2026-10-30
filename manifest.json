@@ -1,0 +1,10 @@
+{
+	"id": "link-activitywatcher",
+	"name": "Link ActivityWatcher",
+	"version": "1.0.0",
+	"minAppVersion": "1.5.12",
+	"description": "Report which vault and note you are working on to a local ActivityWatch server, so its Editor view can show time per note.",
+	"author": "Josh Glazer",
+	"authorUrl": "https://github.com/jsglazer",
+	"isDesktopOnly": true
+}
