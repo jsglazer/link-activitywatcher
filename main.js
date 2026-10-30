@@ -436,10 +436,10 @@ var LinkActivityWatcherPlugin = class extends import_obsidian2.Plugin {
     });
   }
   applySettings(settings) {
+    if (settings.serverUrl !== this.settings.serverUrl) this.client = new AwClient(settings.serverUrl, obsidianHttp);
     this.settings = settings;
     this.excluded = compilePatterns(settings.excludePatterns);
     this.projectRules = compileProjectRules(settings.projectRules);
-    this.client = new AwClient(settings.serverUrl, obsidianHttp);
   }
   watchDocument(doc) {
     this.docs.add(doc);

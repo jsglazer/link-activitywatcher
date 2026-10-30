@@ -147,10 +147,12 @@ export default class LinkActivityWatcherPlugin extends Plugin {
 	}
 
 	private applySettings(settings: WatcherSettings): void {
+		// Keep the client unless the URL changed: in-flight requests compare against
+		// this.client, and swapping it would make a pending connect abandon itself.
+		if (settings.serverUrl !== this.settings.serverUrl) this.client = new AwClient(settings.serverUrl, obsidianHttp);
 		this.settings = settings;
 		this.excluded = compilePatterns(settings.excludePatterns);
 		this.projectRules = compileProjectRules(settings.projectRules);
-		this.client = new AwClient(settings.serverUrl, obsidianHttp);
 	}
 
 	private watchDocument(doc: Document): void {
