@@ -148,6 +148,17 @@ function fileEvent(kind, file, env, now, oldPath) {
   if (kind === "rename" && oldPath !== void 0) data.oldFile = `/${oldPath}`;
   return { timestamp: now.toISOString(), duration: 0, data };
 }
+function closingEvent(previous, next, pulsetime) {
+  if (!previous || sameData(previous.data, next.data)) return null;
+  const nextMs = Date.parse(next.timestamp);
+  const gap = nextMs - Date.parse(previous.timestamp);
+  if (gap <= 1 || gap > pulsetime * 1e3) return null;
+  return { timestamp: new Date(nextMs - 1).toISOString(), duration: 0, data: previous.data };
+}
+function sameData(a, b) {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
+}
 function pulsetimeFor(heartbeatSeconds) {
   return heartbeatSeconds + Math.max(5, Math.ceil(heartbeatSeconds / 2));
 }
@@ -359,6 +370,8 @@ var LinkActivityWatcherPlugin = class extends import_obsidian2.Plugin {
     this.retryTimer = null;
     this.retryAttempt = 0;
     this.pendingFileEvents = [];
+    /** The last activity beat sent, so a note switch can close the note being left. */
+    this.lastBeat = null;
     // Requests are chained so heartbeats reach the server in timestamp order.
     this.queue = Promise.resolve();
     this.statusEl = null;
@@ -510,10 +523,13 @@ var LinkActivityWatcherPlugin = class extends import_obsidian2.Plugin {
     if (!file) return;
     const event = activityEvent(file, this.env(), /* @__PURE__ */ new Date());
     const pulsetime = pulsetimeFor(this.settings.heartbeatSeconds);
+    const closing = closingEvent(this.lastBeat, event, pulsetime);
+    this.lastBeat = event;
     const client = this.client;
     this.enqueue(async () => {
       if (this.connection !== "online" || client !== this.client) return;
       try {
+        if (closing) await client.heartbeat(activityBucketId(this.host), pulsetime, closing);
         await client.heartbeat(activityBucketId(this.host), pulsetime, event);
       } catch (e) {
         this.onSendError(e);

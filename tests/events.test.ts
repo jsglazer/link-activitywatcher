@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	activityBucketId,
 	activityEvent,
+	closingEvent,
 	compilePatterns,
 	compileProjectRules,
 	fileEvent,
@@ -130,5 +131,22 @@ describe("project rules", () => {
 		expect(e.data.project).toBe("Data - POGO 511");
 		expect(e.data.vault).toBe("VaultDEV");
 		expect(activityEvent({ path: "Other/x.md", extension: "md" }, { ...env, projectRules: rules }, now).data.project).toBe("VaultDEV");
+	});
+});
+
+describe("closingEvent", () => {
+	const note = (path: string, at: Date) => activityEvent({ path, extension: "md" }, env, at);
+	const later = (s: number) => new Date(now.getTime() + s * 1000);
+
+	it("re-sends the note being left, stamped just before the new note's first beat", () => {
+		const closing = closingEvent(note("A.md", now), note("B.md", later(7)), 15);
+		expect(closing?.data.file).toBe("/A.md");
+		expect(closing?.timestamp).toBe(new Date(later(7).getTime() - 1).toISOString());
+	});
+
+	it("does nothing for the same note, a first beat, or a beat too old to merge", () => {
+		expect(closingEvent(note("A.md", now), note("A.md", later(7)), 15)).toBeNull();
+		expect(closingEvent(null, note("A.md", now), 15)).toBeNull();
+		expect(closingEvent(note("A.md", now), note("B.md", later(16)), 15)).toBeNull();
 	});
 });

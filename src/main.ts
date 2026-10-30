@@ -14,6 +14,7 @@ import {
 	fileEventBucketId,
 	isExcluded,
 	pulsetimeFor,
+	closingEvent,
 	type AwEvent,
 	type EnvInfo,
 	type FileEventKind,
@@ -56,6 +57,8 @@ export default class LinkActivityWatcherPlugin extends Plugin {
 	private retryTimer: number | null = null;
 	private retryAttempt = 0;
 	private pendingFileEvents: AwEvent[] = [];
+	/** The last activity beat sent, so a note switch can close the note being left. */
+	private lastBeat: AwEvent | null = null;
 	// Requests are chained so heartbeats reach the server in timestamp order.
 	private queue: Promise<void> = Promise.resolve();
 	private statusEl: HTMLElement | null = null;
@@ -232,10 +235,13 @@ export default class LinkActivityWatcherPlugin extends Plugin {
 		if (!file) return;
 		const event = activityEvent(file, this.env(), new Date());
 		const pulsetime = pulsetimeFor(this.settings.heartbeatSeconds);
+		const closing = closingEvent(this.lastBeat, event, pulsetime);
+		this.lastBeat = event;
 		const client = this.client;
 		this.enqueue(async () => {
 			if (this.connection !== "online" || client !== this.client) return;
 			try {
+				if (closing) await client.heartbeat(activityBucketId(this.host), pulsetime, closing);
 				await client.heartbeat(activityBucketId(this.host), pulsetime, event);
 			} catch (e) {
 				this.onSendError(e);

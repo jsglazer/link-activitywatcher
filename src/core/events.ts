@@ -91,6 +91,24 @@ export function fileEvent(kind: FileEventKind, file: FileInfo, env: EnvInfo, now
 	return { timestamp: now.toISOString(), duration: 0, data };
 }
 
+// When the open note changes, one last beat for the note being left, stamped
+// just before the new note's first beat, stretches its event to the moment of
+// the switch. Without it the event ends at its last timer beat and every visit
+// loses up to one heartbeat interval. Null when there is nothing to close: no
+// previous beat, the same note, or a previous beat too old to merge into.
+export function closingEvent(previous: AwEvent | null, next: AwEvent, pulsetime: number): AwEvent | null {
+	if (!previous || sameData(previous.data, next.data)) return null;
+	const nextMs = Date.parse(next.timestamp);
+	const gap = nextMs - Date.parse(previous.timestamp);
+	if (gap <= 1 || gap > pulsetime * 1000) return null;
+	return { timestamp: new Date(nextMs - 1).toISOString(), duration: 0, data: previous.data };
+}
+
+function sameData(a: Record<string, string>, b: Record<string, string>): boolean {
+	const keys = Object.keys(a);
+	return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
+}
+
 // aw-server merges a heartbeat into the previous event when the data matches
 // and it arrives within `pulsetime` seconds of that event's end. Allow a
 // margin over the interval so a slightly late timer does not split the event.
