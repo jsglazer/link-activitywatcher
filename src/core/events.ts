@@ -15,6 +15,7 @@ export interface EnvInfo {
 	vault: string;
 	vaultPath: string | null; // null = not sent
 	editorVersion: string;
+	projectRules: RegExp[]; // from compileProjectRules; empty = project is the vault name
 }
 
 export type FileEventKind = "create" | "rename" | "delete";
@@ -67,7 +68,8 @@ export function languageFor(extension: string): string {
 function baseData(file: FileInfo, env: EnvInfo): Record<string, string> {
 	const data: Record<string, string> = {
 		file: `/${file.path}`,
-		project: env.vault,
+		project: projectFor(file.path, env.projectRules) ?? env.vault,
+		vault: env.vault,
 		language: languageFor(file.extension),
 		editor: "Obsidian",
 		editorVersion: env.editorVersion,
@@ -100,13 +102,8 @@ function escapeRegExp(s: string): string {
 	return s.replace(/[.+^${}()|[\]\\]/g, "\\$&");
 }
 
-// Glob → RegExp. `**` spans folders, `*` and `?` stay inside one path segment.
-// A pattern ending in "/" matches everything under that folder. A pattern
-// without "/" matches the file name in any folder (like .gitignore).
-export function globToRegExp(pattern: string): RegExp {
-	let p = pattern.trim().replace(/^\/+/, "");
-	if (p.endsWith("/")) p += "**";
-	const anchored = p.includes("/");
+// Glob body → RegExp source. `**` spans folders, `*` and `?` stay inside one path segment.
+function globSource(p: string): string {
 	let out = "";
 	for (let i = 0; i < p.length; i++) {
 		const c = p[i];
@@ -128,7 +125,41 @@ export function globToRegExp(pattern: string): RegExp {
 			out += escapeRegExp(c);
 		}
 	}
-	return new RegExp(anchored ? `^${out}$` : `(?:^|/)${out}$`, "i");
+	return out;
+}
+
+// Exclusion glob → RegExp. A pattern ending in "/" matches everything under
+// that folder. A pattern without "/" matches the file name in any folder (like .gitignore).
+export function globToRegExp(pattern: string): RegExp {
+	let p = pattern.trim().replace(/^\/+/, "");
+	if (p.endsWith("/")) p += "**";
+	const out = globSource(p);
+	return new RegExp(p.includes("/") ? `^${out}$` : `(?:^|/)${out}$`, "i");
+}
+
+// Project rule → RegExp matching a folder prefix of a note's path. The rule
+// names a folder glob, e.g. "Classes/2026-B/*"; the folder it matches becomes
+// the project. A trailing "/" or "/**" is ignored (the rule is always a folder).
+export function projectRuleToRegExp(rule: string): RegExp {
+	const p = rule.trim().replace(/^\/+/, "").replace(/(?:\/\*\*)?\/*$/, "");
+	return new RegExp(`^(${globSource(p)})/`, "i");
+}
+
+export function compileProjectRules(rules: string[]): RegExp[] {
+	return rules.map(projectRuleToRegExp);
+}
+
+// Name of the folder matched by the first rule that fits `path`, or null.
+export function projectFor(path: string, compiled: RegExp[]): string | null {
+	for (const re of compiled) {
+		const m = re.exec(path);
+		if (m) {
+			const folder = m[1].replace(/\/+$/, "");
+			const name = folder.slice(folder.lastIndexOf("/") + 1);
+			if (name !== "") return name;
+		}
+	}
+	return null;
 }
 
 export function compilePatterns(patterns: string[]): RegExp[] {

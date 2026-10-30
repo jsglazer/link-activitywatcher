@@ -3,16 +3,18 @@ import {
 	activityBucketId,
 	activityEvent,
 	compilePatterns,
+	compileProjectRules,
 	fileEvent,
 	fileEventBucketId,
 	globToRegExp,
 	isExcluded,
 	languageFor,
+	projectFor,
 	pulsetimeFor,
 	type EnvInfo,
 } from "../src/core/events";
 
-const env: EnvInfo = { vault: "VaultDEV", vaultPath: "/Users/j/VaultDEV", editorVersion: "1.14.4" };
+const env: EnvInfo = { vault: "VaultDEV", vaultPath: "/Users/j/VaultDEV", editorVersion: "1.14.4", projectRules: [] };
 const now = new Date("2026-10-30T12:00:00.000Z");
 
 describe("bucket ids", () => {
@@ -38,7 +40,7 @@ describe("activityEvent", () => {
 		expect(e).toEqual({
 			timestamp: "2026-10-30T12:00:00.000Z",
 			duration: 0,
-			data: { file: "/Notes/A.md", project: "VaultDEV", language: "Markdown", editor: "Obsidian", editorVersion: "1.14.4", projectPath: "/Users/j/VaultDEV" },
+			data: { file: "/Notes/A.md", project: "VaultDEV", vault: "VaultDEV", language: "Markdown", editor: "Obsidian", editorVersion: "1.14.4", projectPath: "/Users/j/VaultDEV" },
 		});
 	});
 
@@ -91,5 +93,42 @@ describe("exclusion globs", () => {
 	it("is case-insensitive and escapes regex characters", () => {
 		expect(globToRegExp("a+b (1).md").test("A+B (1).md")).toBe(true);
 		expect(globToRegExp("a.md").test("aXmd")).toBe(false);
+	});
+});
+
+describe("project rules", () => {
+	const rules = compileProjectRules(["Classes/2026-B/*", "/Projects/", "Archive/**"]);
+
+	it("uses the folder matched by * as the project", () => {
+		expect(projectFor("Classes/2026-B/Econ - PUBP 720/Inventory/6.3.1 Isoquants.md", rules)).toBe("Econ - PUBP 720");
+		expect(projectFor("Classes/2026-B/RD - POGO 801/x.md", rules)).toBe("RD - POGO 801");
+	});
+
+	it("needs the note to be inside the folder, not just share a prefix", () => {
+		expect(projectFor("Classes/2026-B/loose-note.md", rules)).toBeNull();
+		expect(projectFor("Classes/2026-A/Old/x.md", rules)).toBeNull();
+	});
+
+	it("accepts a plain folder (leading/trailing slashes ignored) and is case-insensitive", () => {
+		expect(projectFor("projects/a/b.md", rules)).toBe("projects");
+	});
+
+	it("a trailing /** means the folder itself; ** mid-rule spans folders", () => {
+		expect(projectFor("Archive/2025/Fall/x.md", rules)).toBe("Archive");
+		const r = compileProjectRules(["Terms/**/Week*"]);
+		expect(projectFor("Terms/2026/B/Week 3/x.md", r)).toBe("Week 3");
+		expect(projectFor("Terms/Week 1/x.md", r)).toBe("Week 1");
+	});
+
+	it("first matching rule wins", () => {
+		const r = compileProjectRules(["Classes/*", "Classes/2026-B/*"]);
+		expect(projectFor("Classes/2026-B/Data - POGO 511/x.md", r)).toBe("2026-B");
+	});
+
+	it("feeds the event's project and keeps the vault name in `vault`", () => {
+		const e = activityEvent({ path: "Classes/2026-B/Data - POGO 511/w1.md", extension: "md" }, { ...env, projectRules: rules }, now);
+		expect(e.data.project).toBe("Data - POGO 511");
+		expect(e.data.vault).toBe("VaultDEV");
+		expect(activityEvent({ path: "Other/x.md", extension: "md" }, { ...env, projectRules: rules }, now).data.project).toBe("VaultDEV");
 	});
 });

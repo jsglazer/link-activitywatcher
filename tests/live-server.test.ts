@@ -20,7 +20,7 @@ describe.skipIf(!url)("live aw-server", () => {
 		await client.ensureBucket(bucket, "app.editor.activity", "aw-watcher-obsidian", "test");
 		await client.ensureBucket(bucket, "app.editor.activity", "aw-watcher-obsidian", "test"); // 304 path
 		try {
-			const env = { vault: "V", vaultPath: null, editorVersion: "1" };
+			const env = { vault: "V", vaultPath: null, editorVersion: "1", projectRules: [] };
 			const t0 = Date.now() - 30_000;
 			for (const dt of [0, 10_000, 20_000]) {
 				await client.heartbeat(bucket, pulsetimeFor(10), activityEvent({ path: "A.md", extension: "md" }, env, new Date(t0 + dt)));

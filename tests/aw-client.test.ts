@@ -11,7 +11,7 @@ function fake(status: number, text = "{}") {
 	return { calls, client: new AwClient("http://h:5600", http) };
 }
 
-const event = activityEvent({ path: "A.md", extension: "md" }, { vault: "V", vaultPath: null, editorVersion: "1" }, new Date(0));
+const event = activityEvent({ path: "A.md", extension: "md" }, { vault: "V", vaultPath: null, editorVersion: "1", projectRules: [] }, new Date(0));
 
 describe("AwClient", () => {
 	it("creates buckets with client/type/hostname and treats 304 as success", async () => {

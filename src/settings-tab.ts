@@ -84,6 +84,20 @@ export class LinkActivityWatcherSettingTab extends PluginSettingTab {
 			.setDesc("Log note create, rename, and delete events to a separate bucket (aw-watcher-obsidian-fileevents_<host>). Events that happen while ActivityWatch is offline are sent when it comes back.")
 			.addToggle((t) => t.setValue(s.trackFileEvents).onChange((v) => this.apply({ trackFileEvents: v })));
 
+		new Setting(containerEl).setName("Projects").setHeading();
+
+		new Setting(containerEl)
+			.setName("Project from folder")
+			.setDesc(
+				"One folder glob per line. A note inside a matching folder is reported with that folder's name as its project, so ActivityWatch's Editor → Top projects shows time per folder. Example: Classes/2026-B/* makes every class folder its own project. First matching line wins; other notes use the vault name. Lines starting with # are ignored.",
+			)
+			.setClass("link-activitywatcher-patterns")
+			.addTextArea((ta) => {
+				ta.setPlaceholder("Classes/2026-B/*\nProjects/*").setValue(s.projectRules.join("\n"));
+				ta.inputEl.rows = 4;
+				ta.inputEl.addEventListener("change", () => void this.apply({ projectRules: parsePatterns(ta.getValue()) }));
+			});
+
 		new Setting(containerEl).setName("Privacy").setHeading();
 
 		new Setting(containerEl)

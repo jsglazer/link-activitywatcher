@@ -16,7 +16,8 @@ Heartbeats for the open note go to the bucket `aw-watcher-obsidian_<hostname>` (
 | Key | Value |
 | --- | --- |
 | `file` | Vault-relative path with a leading `/`, e.g. `/Projects/Plan.md` |
-| `project` | Vault name |
+| `project` | Vault name, or the folder name from a **Project from folder** rule |
+| `vault` | Vault name (always) |
 | `language` | File type: Markdown, Canvas, Bases, PDF, Image, Audio, Video, or the upper-cased extension |
 | `projectPath` | Absolute vault folder (can be turned off) |
 | `editor` / `editorVersion` | `Obsidian` and the Obsidian API version |
@@ -58,8 +59,19 @@ If aw-server is not running when Obsidian starts, or stops later, the plugin kee
 | Only while Obsidian is focused | on | |
 | Idle timeout | 5 min | 0 = report while a note is open, even with no input. |
 | Record file events | on | Create / rename / delete, in a separate bucket. |
+| Project from folder | none | One folder glob per line (see below). |
 | Excluded paths | none | One glob per line (see below). |
 | Send vault folder path | on | Turns `projectPath` on or off. |
+
+### Project from folder
+
+ActivityWatch's Editor section lists **Top projects**. By default the project is the vault, so everything in a vault lands on one line. Add folder rules to split it up:
+
+```
+Classes/2026-B/*
+```
+
+A note at `Classes/2026-B/Econ - PUBP 720/Inventory/Isoquants.md` is then reported with project `Econ - PUBP 720`, and each class gets its own line with its own total. Rules are folder globs (`*` = one folder, `**` = any depth; a trailing `/` or `/**` means the folder itself). The first matching rule wins, and notes outside every rule keep the vault name. The vault name is always sent separately as `vault`.
 
 ### Exclusion patterns
 

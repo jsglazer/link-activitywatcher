@@ -11,6 +11,8 @@ export interface WatcherSettings {
 	trackFileEvents: boolean;
 	// Vault-relative glob patterns that are never reported.
 	excludePatterns: string[];
+	// Folder globs whose matched folder name is sent as `project` instead of the vault name.
+	projectRules: string[];
 	// Include the vault's absolute folder path in event data.
 	sendVaultPath: boolean;
 	// Tracking switched off by the user (persisted, so it survives restarts).
@@ -24,6 +26,7 @@ export const DEFAULT_SETTINGS: WatcherSettings = {
 	idleMinutes: 5,
 	trackFileEvents: true,
 	excludePatterns: [],
+	projectRules: [],
 	sendVaultPath: true,
 	paused: false,
 };
@@ -71,6 +74,7 @@ export function normalizeSettings(raw: unknown): WatcherSettings {
 		idleMinutes: clampInt(src.idleMinutes, 0, IDLE_MAX, d.idleMinutes),
 		trackFileEvents: bool(src.trackFileEvents, d.trackFileEvents),
 		excludePatterns: parsePatterns(src.excludePatterns),
+		projectRules: parsePatterns(src.projectRules),
 		sendVaultPath: bool(src.sendVaultPath, d.sendVaultPath),
 		paused: bool(src.paused, d.paused),
 	};

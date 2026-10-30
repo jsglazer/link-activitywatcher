@@ -9,6 +9,7 @@ import {
 	activityBucketId,
 	activityEvent,
 	compilePatterns,
+	compileProjectRules,
 	fileEvent,
 	fileEventBucketId,
 	isExcluded,
@@ -48,6 +49,7 @@ export default class LinkActivityWatcherPlugin extends Plugin {
 	private client = new AwClient(this.settings.serverUrl, obsidianHttp);
 	private readonly host = hostname();
 	private excluded: RegExp[] = [];
+	private projectRules: RegExp[] = [];
 	private lastInputAt = Date.now();
 	private readonly docs = new Set<Document>();
 	private heartbeatTimer: number | null = null;
@@ -147,6 +149,7 @@ export default class LinkActivityWatcherPlugin extends Plugin {
 	private applySettings(settings: WatcherSettings): void {
 		this.settings = settings;
 		this.excluded = compilePatterns(settings.excludePatterns);
+		this.projectRules = compileProjectRules(settings.projectRules);
 		this.client = new AwClient(settings.serverUrl, obsidianHttp);
 	}
 
@@ -211,7 +214,7 @@ export default class LinkActivityWatcherPlugin extends Plugin {
 	private env(): EnvInfo {
 		const adapter = this.app.vault.adapter;
 		const vaultPath = this.settings.sendVaultPath && adapter instanceof FileSystemAdapter ? adapter.getBasePath() : null;
-		return { vault: this.app.vault.getName(), vaultPath, editorVersion: apiVersion };
+		return { vault: this.app.vault.getName(), vaultPath, editorVersion: apiVersion, projectRules: this.projectRules };
 	}
 
 	private trackableFile(file: TAbstractFile | null): FileInfo | null {

@@ -127,9 +127,11 @@ function languageFor(extension) {
   return (_a = LANGUAGES[ext]) != null ? _a : ext.toUpperCase();
 }
 function baseData(file, env) {
+  var _a;
   const data = {
     file: `/${file.path}`,
-    project: env.vault,
+    project: (_a = projectFor(file.path, env.projectRules)) != null ? _a : env.vault,
+    vault: env.vault,
     language: languageFor(file.extension),
     editor: "Obsidian",
     editorVersion: env.editorVersion
@@ -152,10 +154,7 @@ function pulsetimeFor(heartbeatSeconds) {
 function escapeRegExp(s) {
   return s.replace(/[.+^${}()|[\]\\]/g, "\\$&");
 }
-function globToRegExp(pattern) {
-  let p = pattern.trim().replace(/^\/+/, "");
-  if (p.endsWith("/")) p += "**";
-  const anchored = p.includes("/");
+function globSource(p) {
   let out = "";
   for (let i = 0; i < p.length; i++) {
     const c = p[i];
@@ -177,7 +176,31 @@ function globToRegExp(pattern) {
       out += escapeRegExp(c);
     }
   }
-  return new RegExp(anchored ? `^${out}$` : `(?:^|/)${out}$`, "i");
+  return out;
+}
+function globToRegExp(pattern) {
+  let p = pattern.trim().replace(/^\/+/, "");
+  if (p.endsWith("/")) p += "**";
+  const out = globSource(p);
+  return new RegExp(p.includes("/") ? `^${out}$` : `(?:^|/)${out}$`, "i");
+}
+function projectRuleToRegExp(rule) {
+  const p = rule.trim().replace(/^\/+/, "").replace(/(?:\/\*\*)?\/*$/, "");
+  return new RegExp(`^(${globSource(p)})/`, "i");
+}
+function compileProjectRules(rules) {
+  return rules.map(projectRuleToRegExp);
+}
+function projectFor(path, compiled) {
+  for (const re of compiled) {
+    const m = re.exec(path);
+    if (m) {
+      const folder = m[1].replace(/\/+$/, "");
+      const name = folder.slice(folder.lastIndexOf("/") + 1);
+      if (name !== "") return name;
+    }
+  }
+  return null;
 }
 function compilePatterns(patterns) {
   return patterns.map(globToRegExp);
@@ -194,6 +217,7 @@ var DEFAULT_SETTINGS = {
   idleMinutes: 5,
   trackFileEvents: true,
   excludePatterns: [],
+  projectRules: [],
   sendVaultPath: true,
   paused: false
 };
@@ -230,6 +254,7 @@ function normalizeSettings(raw) {
     idleMinutes: clampInt(src.idleMinutes, 0, IDLE_MAX, d.idleMinutes),
     trackFileEvents: bool(src.trackFileEvents, d.trackFileEvents),
     excludePatterns: parsePatterns(src.excludePatterns),
+    projectRules: parsePatterns(src.projectRules),
     sendVaultPath: bool(src.sendVaultPath, d.sendVaultPath),
     paused: bool(src.paused, d.paused)
   };
@@ -283,6 +308,14 @@ var LinkActivityWatcherSettingTab = class extends import_obsidian.PluginSettingT
       });
     });
     new import_obsidian.Setting(containerEl).setName("Record file events").setDesc("Log note create, rename, and delete events to a separate bucket (aw-watcher-obsidian-fileevents_<host>). Events that happen while ActivityWatch is offline are sent when it comes back.").addToggle((t) => t.setValue(s.trackFileEvents).onChange((v) => this.apply({ trackFileEvents: v })));
+    new import_obsidian.Setting(containerEl).setName("Projects").setHeading();
+    new import_obsidian.Setting(containerEl).setName("Project from folder").setDesc(
+      "One folder glob per line. A note inside a matching folder is reported with that folder's name as its project, so ActivityWatch's Editor \u2192 Top projects shows time per folder. Example: Classes/2026-B/* makes every class folder its own project. First matching line wins; other notes use the vault name. Lines starting with # are ignored."
+    ).setClass("link-activitywatcher-patterns").addTextArea((ta) => {
+      ta.setPlaceholder("Classes/2026-B/*\nProjects/*").setValue(s.projectRules.join("\n"));
+      ta.inputEl.rows = 4;
+      ta.inputEl.addEventListener("change", () => void this.apply({ projectRules: parsePatterns(ta.getValue()) }));
+    });
     new import_obsidian.Setting(containerEl).setName("Privacy").setHeading();
     new import_obsidian.Setting(containerEl).setName("Excluded paths").setDesc(
       "One glob per line, matched against the vault-relative path. Folder/ excludes a whole folder, *.excalidraw.md matches in any folder, Journal/**/private-* spans subfolders. Lines starting with # are ignored. Matching notes are never sent."
@@ -319,6 +352,7 @@ var LinkActivityWatcherPlugin = class extends import_obsidian2.Plugin {
     this.client = new AwClient(this.settings.serverUrl, obsidianHttp);
     this.host = (0, import_os.hostname)();
     this.excluded = [];
+    this.projectRules = [];
     this.lastInputAt = Date.now();
     this.docs = /* @__PURE__ */ new Set();
     this.heartbeatTimer = null;
@@ -404,6 +438,7 @@ var LinkActivityWatcherPlugin = class extends import_obsidian2.Plugin {
   applySettings(settings) {
     this.settings = settings;
     this.excluded = compilePatterns(settings.excludePatterns);
+    this.projectRules = compileProjectRules(settings.projectRules);
     this.client = new AwClient(settings.serverUrl, obsidianHttp);
   }
   watchDocument(doc) {
@@ -461,7 +496,7 @@ var LinkActivityWatcherPlugin = class extends import_obsidian2.Plugin {
   env() {
     const adapter = this.app.vault.adapter;
     const vaultPath = this.settings.sendVaultPath && adapter instanceof import_obsidian2.FileSystemAdapter ? adapter.getBasePath() : null;
-    return { vault: this.app.vault.getName(), vaultPath, editorVersion: import_obsidian2.apiVersion };
+    return { vault: this.app.vault.getName(), vaultPath, editorVersion: import_obsidian2.apiVersion, projectRules: this.projectRules };
   }
   trackableFile(file) {
     if (!(file instanceof import_obsidian2.TFile)) return null;
