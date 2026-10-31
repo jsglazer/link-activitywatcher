@@ -3,7 +3,10 @@
 [![GitHub release](https://img.shields.io/github/v/release/jsglazer/link-activitywatcher?logo=github)](https://github.com/jsglazer/link-activitywatcher/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/jsglazer/link-activitywatcher/blob/main/LICENSE)
 [![Made with Claude](https://img.shields.io/badge/Made_with-Claude-D97756?logo=anthropic)](https://claude.ai)
+[![Gemini Flash Antigravity](https://img.shields.io/badge/Gemini%20Flash-Antigravity-4f86f7?logo=google-gemini&logoColor=white)](https://github.com/google-gemini)
 [![CI](https://github.com/jsglazer/link-activitywatcher/actions/workflows/ci.yml/badge.svg)](https://github.com/jsglazer/link-activitywatcher/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/jsglazer/link-activitywatcher/actions/workflows/codeql.yml/badge.svg)](https://github.com/jsglazer/link-activitywatcher/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/jsglazer/link-activitywatcher/badge)](https://securityscorecards.dev/viewer/?uri=github.com/jsglazer/link-activitywatcher)
 
 An Obsidian plugin that acts as an [ActivityWatch](https://activitywatch.net/) watcher. It reports which vault and which note you are working in to your local aw-server, so ActivityWatch's **Editor** view and timeline show time per note, per vault, and per file type.
 
@@ -22,7 +25,7 @@ Heartbeats for the open note go to the bucket `aw-watcher-obsidian_<hostname>` (
 | `projectPath` | Absolute vault folder (can be turned off) |
 | `editor` / `editorVersion` | `Obsidian` and the Obsidian API version |
 
-A heartbeat is sent when you open a note and then every *N* seconds (default 10) while you are active. aw-server merges consecutive heartbeats for the same note into one event.
+A heartbeat is sent when you open a note and then every *N* seconds (default 10) while you are active. aw-server merges consecutive heartbeats for the same note into one event. When you switch notes, the note you are leaving gets one last heartbeat stamped at the moment of the switch, so its event runs right up to it instead of stopping at its last timer heartbeat (which would undercount every visit by up to one interval).
 
 With **Record file events** on, note create / rename / delete events are written to a separate bucket, `aw-watcher-obsidian-fileevents_<hostname>` (type `app.editor.fileevent`, keys as above plus `eventType` and `oldFile` for renames). They live in their own bucket so they never interrupt the activity timeline.
 
